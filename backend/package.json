@@ -1,0 +1,17 @@
+{
+  "name": "agentshield-backend",
+  "version": "1.0.0",
+  "description": "AgentShield (PS-01) - Policy Enforcement Point & Security Runtime Layer",
+  "main": "src/server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "test": "node -e \"import('./src/scenario_runner.js').then(m => m.runAllScenarios())\"",
+    "attacks": "node src/attack_suite.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.6",
+    "express": "^4.22.3"
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "messageId": "msg_1793365359684_6uj0o",
+  "timestamp": "2026-10-30T13:02:39.684Z",
+  "to": "manager@company.com",
+  "subject": "Unit Test Uptime Report",
+  "body": "All systems 99.98% green.",
+  "status": "SIMULATED_SENT"
+}

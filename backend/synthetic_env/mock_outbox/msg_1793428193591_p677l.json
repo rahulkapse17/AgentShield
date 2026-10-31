@@ -1,0 +1,8 @@
+{
+  "messageId": "msg_1793428193591_p677l",
+  "timestamp": "2026-10-31T06:29:53.591Z",
+  "to": "abc@mail.com",
+  "subject": "Automated Operations Notification",
+  "body": "Operational status report dispatched by autonomous agent workflow.",
+  "status": "SIMULATED_SENT"
+}
