@@ -738,48 +738,27 @@ Status: Cryptographically Verified Link in Tamper-Evident Chain.
           const formatTag = parsed.format || 'DOCUMENT';
           const extractedLength = typeof parsed.extractedLength === 'number' ? parsed.extractedLength : (content ? content.length : 0);
 
-          appendTerminal('EXTRACTOR', `Parsed format: ${formatTag} (${extractedLength} chars extracted)`, 'log-thought');
-
-          if (data.ingestOutcome && data.ingestOutcome.hybridScan) {
-            const hs = data.ingestOutcome.hybridScan;
-            const detMethod = hs.primaryDetectionMethod === 'LAYER_2_SEMANTIC_SIMILARITY' 
-              ? `Lightweight Concept-Matching (${(hs.threatScore * 100).toFixed(0)}% similarity to ${hs.topIntent}; no learned embeddings)`
-              : (hs.primaryDetectionMethod === 'LAYER_1_REGEX_SIGNATURE' ? `Deterministic Regex Signature (${hs.topIntent})` : 'Clean Baseline');
-            const flagStatus = hs.isMalicious ? 'FLAGGED' : 'NOT FLAGGED';
-            appendTerminal('DETECTOR TELEMETRY', `Detector: ${flagStatus} | Score: ${(hs.threatScore * 100).toFixed(0)}% (${detMethod})`, hs.isMalicious ? 'log-verdict-approval' : 'log-thought');
-          }
-
-          if (parsed.hiddenVectorsFound && parsed.hiddenVectorsFound.length > 0) {
-            parsed.hiddenVectorsFound.forEach(vec => {
-              appendTerminal('HIDDEN VECTOR DETECTED', `⚠️ ${vec}`, 'log-verdict-deny');
-            });
-          }
-
-          // Show simulated vulnerable agent's planned action from document instructions
-          if (data.plan) {
-            appendTerminal('VULNERABLE AGENT THOUGHT', data.plan.thought, 'log-thought');
-            appendTerminal('PROPOSED TOOL CALL', `${data.plan.toolCall.toolName}(${JSON.stringify(data.plan.toolCall.args)})`, 'log-intercept');
-          }
-
           const reason = (out.evaluation && out.evaluation.reason) ? out.evaluation.reason : (out.note || out.status || 'Verified');
 
           if (out.status === 'UNSHIELDED') {
-            appendTerminal('SECURITY ALERT', `⚠️ AgentShield is OFF! Tool executed with NO policy enforcement!`, 'log-verdict-deny');
-            appendTerminal('PEP VERDICT', `UNSHIELDED - Tool executed directly without security evaluation.`, 'log-verdict-deny');
+            appendTerminal('VERDICT', `⚠️ UNSHIELDED (ACTION EXECUTED)`, 'log-verdict-deny');
+            appendTerminal('REASON', reason || 'Executed directly with NO policy enforcement.', 'log-verdict-deny');
             if (out.result) {
               appendTerminal('EXPOSED OUTPUT', typeof out.result === 'object' ? JSON.stringify(out.result) : String(out.result).trim(), 'log-verdict-deny');
             }
             document.getElementById('agent-state').innerText = 'STATE: UNSHIELDED (ACTION EXECUTED)';
           } else if (out.decision === 'DENY' || out.status === 'INJECT_BLOCKED') {
-            appendTerminal('PEP GUARD VERDICT', `🔴 ${out.status} - ${reason}`, 'log-verdict-deny');
-            appendTerminal('ATTACK MITIGATION', `Downstream tool call blocked by Policy Enforcement Point. Secrets protected.`, 'log-thought');
+            appendTerminal('VERDICT', `🔴 ${out.status}`, 'log-verdict-deny');
+            appendTerminal('REASON', reason, 'log-verdict-deny');
             document.getElementById('agent-state').innerText = `STATE: BLOCKED BY GUARD (${out.status})`;
           } else if (out.decision === 'REQUIRE_APPROVAL') {
-            appendTerminal('PEP GUARD VERDICT', `REQUIRE_APPROVAL - Paused for supervisor review`, 'log-verdict-approval');
+            appendTerminal('VERDICT', `🟡 REQUIRES_APPROVAL`, 'log-verdict-approval');
+            appendTerminal('REASON', reason, 'log-verdict-approval');
             document.getElementById('agent-state').innerText = 'STATE: PENDING APPROVAL';
             showApprovalModal(out.approvalId, out.pendingApproval);
           } else {
-            appendTerminal('PEP GUARD VERDICT', `ALLOWED - Clean operation permitted: ${reason}`, 'log-verdict-allow');
+            appendTerminal('VERDICT', `🟢 ALLOWED`, 'log-verdict-allow');
+            appendTerminal('REASON', reason, 'log-verdict-allow');
             document.getElementById('agent-state').innerText = 'STATE: CLEAN FILE (ALLOWED)';
           }
 
@@ -813,38 +792,29 @@ Status: Cryptographically Verified Link in Tamper-Evident Chain.
         });
         const data = await res.json();
 
-        if (data.hybridScan) {
-          const hs = data.hybridScan;
-          const detMethod = hs.primaryDetectionMethod === 'LAYER_2_SEMANTIC_SIMILARITY' 
-            ? `Lightweight Concept-Matching (${(hs.threatScore * 100).toFixed(0)}% similarity to ${hs.topIntent}; no learned embeddings)`
-            : (hs.primaryDetectionMethod === 'LAYER_1_REGEX_SIGNATURE' ? `Deterministic Regex Signature (${hs.topIntent})` : 'Hybrid Baseline Clean');
-          appendTerminal('HYBRID SCANNER', `Analysis: ${detMethod} | Score: ${(hs.threatScore * 100).toFixed(0)}%`, hs.isMalicious ? 'log-verdict-approval' : 'log-thought');
-        }
-
-        if (data.plan) {
-          appendTerminal('SIMULATED AGENT THOUGHT', data.plan.thought, 'log-thought');
-          appendTerminal('PROPOSED TOOL', `${data.plan.toolCall.toolName}(${JSON.stringify(data.plan.toolCall.args)})`, 'log-intercept');
-        }
-
         const out = data.interceptResult || {};
         const reason = (out.evaluation && out.evaluation.reason) ? out.evaluation.reason : (out.note || out.status || '');
         if (out.status === 'UNSHIELDED' || out.decision === 'UNSHIELDED') {
-          appendTerminal('PEP VERDICT', `UNSHIELDED - ${reason || 'Executed with NO policy check'}`, 'log-verdict-deny');
+          appendTerminal('VERDICT', `⚠️ UNSHIELDED (ACTION EXECUTED)`, 'log-verdict-deny');
+          appendTerminal('REASON', reason || 'Executed directly with NO policy check', 'log-verdict-deny');
           if (out.result) {
             appendTerminal('EXPOSED DATA', typeof out.result === 'object' ? JSON.stringify(out.result) : String(out.result).trim(), 'log-verdict-deny');
           }
           document.getElementById('agent-state').innerText = 'STATE: UNSHIELDED (ACTION EXECUTED)';
         } else if (out.decision === 'ALLOW') {
-          appendTerminal('PEP VERDICT', `ALLOWED - ${reason}`, 'log-verdict-allow');
+          appendTerminal('VERDICT', `🟢 ALLOWED`, 'log-verdict-allow');
+          appendTerminal('REASON', reason, 'log-verdict-allow');
           if (out.result) {
             appendTerminal('FILE CONTENT', typeof out.result === 'object' ? JSON.stringify(out.result) : String(out.result).trim(), 'log-thought');
           }
           document.getElementById('agent-state').innerText = 'STATE: ALLOWED';
         } else if (out.decision === 'DENY') {
-          appendTerminal('PEP VERDICT', `${out.status} - ${reason}`, 'log-verdict-deny');
+          appendTerminal('VERDICT', `🔴 ${out.status}`, 'log-verdict-deny');
+          appendTerminal('REASON', reason, 'log-verdict-deny');
           document.getElementById('agent-state').innerText = `STATE: BLOCKED (${out.status})`;
         } else if (out.decision === 'REQUIRE_APPROVAL') {
-          appendTerminal('PEP VERDICT', `REQUIRE_APPROVAL - Paused for review`, 'log-verdict-approval');
+          appendTerminal('VERDICT', `🟡 REQUIRES_APPROVAL`, 'log-verdict-approval');
+          appendTerminal('REASON', reason, 'log-verdict-approval');
           document.getElementById('agent-state').innerText = 'STATE: PENDING APPROVAL';
           showApprovalModal(out.approvalId, out.pendingApproval);
         }
